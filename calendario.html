@@ -1,0 +1,191 @@
+<DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Jogo Medieval - Sistema de Tempo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .progress-bar-fill {
+            transition: width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div class="glass-card rounded-3xl p-8 w-full max-w-md text-center border-t-4 border-indigo-500">
+        <!-- Cabeçalho -->
+        <div class="flex justify-between items-center mb-6">
+            <div id="season-display" class="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-tighter text-sm">
+                <i class="fas fa-snowflake"></i>
+                <span id="season-name">Inverno</span>
+            </div>
+            <div id="status-badge" class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest">
+                Tempo Ativo
+            </div>
+        </div>
+
+        <!-- Display Principal -->
+        <div class="mb-8">
+            <h1 id="year-text" class="text-7xl font-black tracking-tighter text-white mb-2 drop-shadow-lg">1200</h1>
+            <p id="date-text" class="text-2xl text-slate-300 font-light">1 de Janeiro</p>
+            <div id="clock-text" class="mt-4 text-xl font-mono bg-black/40 inline-block px-5 py-2 rounded-xl border border-white/10 shadow-inner">
+                00:00
+            </div>
+        </div>
+
+        <!-- Barra de Progresso do Ano -->
+        <div class="mb-8 text-left">
+            <div class="flex justify-between text-xs text-slate-400 mb-2 uppercase font-bold tracking-widest">
+                <span>Passagem do Ano</span>
+                <span id="progress-percent">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5">
+                <div id="year-progress" class="h-full bg-indigo-500 progress-bar-fill rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Controlos -->
+        <div class="flex justify-center items-center gap-6">
+            <button id="pause-btn" class="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all hover:scale-110 active:scale-95" title="Pausar">
+                <i class="fas fa-pause"></i>
+            </button>
+            <button id="play-btn" class="w-16 h-16 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 transition-all hover:scale-110 active:scale-95" title="Velocidade Normal">
+                <i class="fas fa-play text-2xl ml-1"></i>
+            </button>
+            <button id="fast-btn" class="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition-all hover:scale-110 active:scale-95" title="Avanço Rápido">
+                <i class="fas fa-forward"></i>
+            </button>
+        </div>
+        
+        <div class="mt-8 pt-6 border-t border-white/5">
+            <p class="text-[10px] text-slate-500 uppercase tracking-[0.2em]">
+                Cronologia Medieval: 6 min = 1 Ano
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Configurações de Tempo
+        const START_YEAR = 1200;
+        const REAL_MINUTES_PER_YEAR = 6;
+        
+        // Cálculos de conversão (ms de jogo vs ms reais)
+        const MS_IN_YEAR = 365 * 24 * 60 * 60 * 1000;
+        const REAL_MS_PER_YEAR = REAL_MINUTES_PER_YEAR * 60 * 1000;
+        const TIME_MULTIPLIER = MS_IN_YEAR / REAL_MS_PER_YEAR;
+
+        // Estado inicial da simulação
+        let gameTime = new Date(START_YEAR, 0, 1, 0, 0, 0).getTime();
+        let lastTimestamp = performance.now();
+        let isPaused = false;
+        let speedBoost = 1;
+
+        // Elementos do DOM
+        const yearEl = document.getElementById('year-text');
+        const dateEl = document.getElementById('date-text');
+        const clockEl = document.getElementById('clock-text');
+        const progressEl = document.getElementById('year-progress');
+        const percentEl = document.getElementById('progress-percent');
+        const seasonNameEl = document.getElementById('season-name');
+        const seasonIconEl = document.querySelector('#season-display i');
+        const statusBadge = document.getElementById('status-badge');
+
+        const monthNames = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        function updateSeason(month) {
+            // Lógica de estações baseada em meses
+            if (month >= 2 && month <= 4) {
+                seasonNameEl.innerText = "Primavera";
+                seasonIconEl.className = "fas fa-leaf";
+                document.getElementById('season-display').className = "flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-tighter text-sm";
+            } else if (month >= 5 && month <= 7) {
+                seasonNameEl.innerText = "Verão";
+                seasonIconEl.className = "fas fa-sun";
+                document.getElementById('season-display').className = "flex items-center gap-2 text-yellow-400 font-bold uppercase tracking-tighter text-sm";
+            } else if (month >= 8 && month <= 10) {
+                seasonNameEl.innerText = "Outono";
+                seasonIconEl.className = "fab fa-canadian-maple-leaf";
+                document.getElementById('season-display').className = "flex items-center gap-2 text-orange-400 font-bold uppercase tracking-tighter text-sm";
+            } else {
+                seasonNameEl.innerText = "Inverno";
+                seasonIconEl.className = "fas fa-snowflake";
+                document.getElementById('season-display').className = "flex items-center gap-2 text-blue-300 font-bold uppercase tracking-tighter text-sm";
+            }
+        }
+
+        function gameLoop(currentTimestamp) {
+            const deltaTime = currentTimestamp - lastTimestamp;
+            lastTimestamp = currentTimestamp;
+
+            if (!isPaused) {
+                // Avança o tempo do jogo proporcionalmente ao tempo real decorrido
+                gameTime += deltaTime * TIME_MULTIPLIER * speedBoost;
+
+                const d = new Date(gameTime);
+                const year = d.getFullYear();
+                const month = d.getMonth();
+                const date = d.getDate();
+                const hours = String(d.getHours()).padStart(2, '0');
+                const mins = String(d.getMinutes()).padStart(2, '0');
+
+                // Atualização da Interface Visual
+                yearEl.innerText = year;
+                dateEl.innerText = `${date} de ${monthNames[month]}`;
+                clockEl.innerText = `${hours}:${mins}`;
+
+                // Cálculo de progresso do ano
+                const startOfYear = new Date(year, 0, 1).getTime();
+                const endOfYear = new Date(year + 1, 0, 1).getTime();
+                const progress = ((gameTime - startOfYear) / (endOfYear - startOfYear)) * 100;
+                
+                progressEl.style.width = `${progress}%`;
+                percentEl.innerText = `${Math.floor(progress)}%`;
+
+                updateSeason(month);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Controlos de Botões
+        document.getElementById('pause-btn').onclick = () => {
+            isPaused = true;
+            statusBadge.innerText = "Simulação Pausada";
+            statusBadge.className = "px-3 py-1 rounded-full bg-slate-500/20 text-slate-400 text-xs font-bold uppercase tracking-widest";
+        };
+
+        document.getElementById('play-btn').onclick = () => {
+            isPaused = false;
+            speedBoost = 1;
+            statusBadge.innerText = "Tempo Ativo";
+            statusBadge.className = "px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest";
+        };
+
+        document.getElementById('fast-btn').onclick = () => {
+            isPaused = false;
+            speedBoost = 20; // 20x mais rápido para observar a viragem do ano
+            statusBadge.innerText = "Acelerado (20x)";
+            statusBadge.className = "px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest";
+        };
+
+        // Início da simulação
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

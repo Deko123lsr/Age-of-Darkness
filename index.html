@@ -88,7 +88,12 @@
         const TIME_MULTIPLIER = MS_IN_YEAR / REAL_MS_PER_YEAR;
 
         // Estado inicial da simulação
-        let gameTime = new Date(START_YEAR, 0, 1, 0, 0, 0).getTime();
+        let gameDate = new Date(0);
+        gameDate.setFullYear(START_YEAR, 0, 1);
+        gameDate.setHours(0, 0, 0, 0);
+
+        let gameTime = gameDate.getTime();
+
         let lastTimestamp = performance.now();
         let isPaused = false;
         let speedBoost = 1;

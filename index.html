@@ -155,8 +155,17 @@
                 clockEl.innerText = `${hours}:${mins}`;
 
                 // Cálculo de progresso do ano
-                const startOfYear = new Date(year, 0, 1).getTime();
-                const endOfYear = new Date(year + 1, 0, 1).getTime();
+const startDate = new Date(0);
+startDate.setFullYear(year, 0, 1);
+startDate.setHours(0, 0, 0, 0);
+
+const endDate = new Date(0);
+endDate.setFullYear(year + 1, 0, 1);
+endDate.setHours(0, 0, 0, 0);
+
+const startOfYear = startDate.getTime();
+const endOfYear = endDate.getTime();
+
                 const progress = ((gameTime - startOfYear) / (endOfYear - startOfYear)) * 100;
                 
                 progressEl.style.width = `${progress}%`;
